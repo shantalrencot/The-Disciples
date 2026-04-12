@@ -50,7 +50,7 @@ export function Sidebar() {
 
   const roleLabel =
     profile?.role === 'admin' ? 'Administrator' :
-    profile?.role === 'discipler' ? 'Coach' : 'Student'
+    profile?.role === 'discipler' ? 'Discipler' : 'Student'
 
   const handleSignOut = async () => {
     await signOut()

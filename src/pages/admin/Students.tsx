@@ -6,7 +6,7 @@ import { getInitials } from '../../lib/utils'
 
 const ROLE_LABELS: Record<UserRole, string> = {
   admin: 'Admin',
-  discipler: 'Coach',
+  discipler: 'Discipler',
   student: 'Student',
 }
 
@@ -88,7 +88,7 @@ export default function AdminStudents() {
         >
           <option value="all">All roles</option>
           <option value="admin">Admin</option>
-          <option value="discipler">Coach</option>
+          <option value="discipler">Discipler</option>
           <option value="student">Student</option>
         </select>
       </div>
@@ -154,7 +154,7 @@ export default function AdminStudents() {
                   className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 min-h-0"
                 >
                   <option value="student">Student</option>
-                  <option value="discipler">Coach</option>
+                  <option value="discipler">Discipler</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
