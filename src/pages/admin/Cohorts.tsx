@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { PlusCircle, Users, Calendar, ChevronRight, Trash2 } from 'lucide-react'
+import { PlusCircle, Users, Calendar, ChevronRight, Trash2, Pencil, Check, X } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useCohorts } from '../../hooks/useEnrollments'
 import { useTracks } from '../../hooks/useTracks'
-import { createCohort, deleteCohort } from '../../services/cohortService'
+import { createCohort, deleteCohort, updateCohort } from '../../services/cohortService'
 import { useAuth } from '../../hooks/useAuth'
-import { formatDate } from '../../lib/utils'
+import { formatDate, calculateEndDate } from '../../lib/utils'
 
 const schema = z.object({
   name: z.string().min(2, 'Name is required'),
@@ -17,12 +17,20 @@ const schema = z.object({
 })
 type FormData = z.infer<typeof schema>
 
+interface EditState {
+  name: string
+  start_date: string
+}
+
 export default function AdminCohorts() {
   const { cohorts, loading, refresh } = useCohorts()
   const { tracks } = useTracks()
   const { user } = useAuth()
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editState, setEditState] = useState<EditState>({ name: '', start_date: '' })
+  const [editSaving, setEditSaving] = useState(false)
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -45,6 +53,27 @@ export default function AdminCohorts() {
     if (!confirm('Delete this cohort and all its groups?')) return
     await deleteCohort(id)
     refresh()
+  }
+
+  const startEdit = (cohort: { id: string; name: string; start_date: string }) => {
+    setEditingId(cohort.id)
+    setEditState({
+      name: cohort.name,
+      start_date: cohort.start_date.slice(0, 10),
+    })
+  }
+
+  const cancelEdit = () => setEditingId(null)
+
+  const saveEdit = async (id: string) => {
+    setEditSaving(true)
+    try {
+      await updateCohort(id, { name: editState.name, start_date: editState.start_date })
+      setEditingId(null)
+      refresh()
+    } finally {
+      setEditSaving(false)
+    }
   }
 
   return (
@@ -129,40 +158,94 @@ export default function AdminCohorts() {
         </div>
       ) : (
         <div className="space-y-3">
-          {cohorts.map(cohort => (
-            <div key={cohort.id} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
-              <div className="w-10 h-10 bg-secondary-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Users className="w-5 h-5 text-secondary-600" />
+          {cohorts.map(cohort => {
+            const endDate = calculateEndDate(cohort.start_date, cohort.track?.duration_weeks ?? 8)
+            return (
+              <div key={cohort.id} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                {editingId === cohort.id ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Name</label>
+                      <input
+                        value={editState.name}
+                        onChange={e => setEditState(s => ({ ...s, name: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Start Date</label>
+                      <input
+                        type="date"
+                        value={editState.start_date}
+                        onChange={e => setEditState(s => ({ ...s, start_date: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => saveEdit(cohort.id)}
+                        disabled={editSaving}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded-lg text-xs font-semibold hover:bg-primary-700 disabled:opacity-50 transition-colors"
+                      >
+                        <Check className="w-3 h-3" />
+                        {editSaving ? 'Saving...' : 'Save'}
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-200 transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-secondary-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Users className="w-5 h-5 text-secondary-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 truncate">{cohort.name}</p>
+                      <div className="flex items-center gap-3 mt-1 flex-wrap">
+                        <span className="text-xs text-gray-500">{cohort.track?.name}</span>
+                        <span className="flex items-center gap-1 text-xs text-gray-500">
+                          <Calendar className="w-3 h-3" />
+                          {formatDate(cohort.start_date)}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          Ends: {formatDate(endDate)}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {cohort.groups?.length ?? 0} groups
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => startEdit(cohort)}
+                        className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors min-h-0"
+                        title="Edit cohort"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(cohort.id)}
+                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-0"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <Link
+                        to={`/admin/cohorts/${cohort.id}`}
+                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900 truncate">{cohort.name}</p>
-                <div className="flex items-center gap-3 mt-1">
-                  <span className="text-xs text-gray-500">{cohort.track?.name}</span>
-                  <span className="flex items-center gap-1 text-xs text-gray-500">
-                    <Calendar className="w-3 h-3" />
-                    {formatDate(cohort.start_date)}
-                  </span>
-                  <span className="text-xs text-gray-400">
-                    {cohort.groups?.length ?? 0} groups
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleDelete(cohort.id)}
-                  className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-0"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-                <Link
-                  to={`/admin/cohorts/${cohort.id}`}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Link>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

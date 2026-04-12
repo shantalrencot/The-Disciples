@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, PlusCircle, Users, UserPlus, Trash2, UserCheck } from 'lucide-react'
-import { getCohort, createGroup, enrollStudent, unenrollStudent } from '../../services/cohortService'
+import { ArrowLeft, PlusCircle, Users, UserPlus, Trash2, UserCheck, Pencil, Check, X, Calendar } from 'lucide-react'
+import { getCohort, createGroup, enrollStudent, unenrollStudent, updateGroup } from '../../services/cohortService'
 import { getUsersByRole } from '../../services/authService'
 import type { Cohort, Profile } from '../../lib/types'
-import { getInitials } from '../../lib/utils'
+import { getInitials, calculateEndDate, formatDate } from '../../lib/utils'
+
+interface GroupEditState {
+  name: string
+  discipler_id: string
+}
 
 export default function AdminCohortDetail() {
   const { id } = useParams<{ id: string }>()
@@ -16,6 +21,9 @@ export default function AdminCohortDetail() {
   const [groupName, setGroupName] = useState('')
   const [selectedDiscipler, setSelectedDiscipler] = useState('')
   const [saving, setSaving] = useState(false)
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
+  const [groupEditState, setGroupEditState] = useState<GroupEditState>({ name: '', discipler_id: '' })
+  const [groupEditSaving, setGroupEditSaving] = useState(false)
 
   async function load() {
     if (!id) return
@@ -61,11 +69,39 @@ export default function AdminCohortDetail() {
     load()
   }
 
+  const startEditGroup = (group: { id: string; name: string; discipler_id: string | null }) => {
+    setEditingGroupId(group.id)
+    setGroupEditState({
+      name: group.name,
+      discipler_id: group.discipler_id ?? '',
+    })
+  }
+
+  const cancelEditGroup = () => setEditingGroupId(null)
+
+  const saveEditGroup = async (groupId: string) => {
+    setGroupEditSaving(true)
+    try {
+      await updateGroup(groupId, {
+        name: groupEditState.name,
+        discipler_id: groupEditState.discipler_id || null,
+      })
+      setEditingGroupId(null)
+      load()
+    } finally {
+      setGroupEditSaving(false)
+    }
+  }
+
   // Students not yet enrolled in this cohort
   const enrolledStudentIds = new Set(
     cohort?.groups?.flatMap(g => g.enrollments?.map(e => e.student_id) ?? []) ?? []
   )
   const availableStudents = students.filter(s => !enrolledStudentIds.has(s.id))
+
+  const endDate = cohort
+    ? calculateEndDate(cohort.start_date, cohort.track?.duration_weeks ?? 8)
+    : null
 
   if (loading) return (
     <div className="animate-pulse space-y-4">
@@ -87,6 +123,18 @@ export default function AdminCohortDetail() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{cohort.name}</h1>
           <p className="text-sm text-gray-500 mt-1">Track: {cohort.track?.name}</p>
+          <div className="flex items-center gap-4 mt-1">
+            <span className="flex items-center gap-1 text-xs text-gray-400">
+              <Calendar className="w-3 h-3" />
+              Starts: {formatDate(cohort.start_date)}
+            </span>
+            {endDate && (
+              <span className="flex items-center gap-1 text-xs text-gray-400">
+                <Calendar className="w-3 h-3" />
+                Ends: {formatDate(endDate)}
+              </span>
+            )}
+          </div>
         </div>
         <button
           onClick={() => setShowGroupForm(!showGroupForm)}
@@ -153,14 +201,68 @@ export default function AdminCohortDetail() {
           {cohort.groups.map(group => (
             <div key={group.id} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
               <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="font-semibold text-gray-900">{group.name}</h3>
-                  <p className="text-xs text-gray-500">
-                    Discipler: {group.discipler?.full_name ?? 'Unassigned'} ·{' '}
-                    {group.enrollments?.length ?? 0}/{group.max_students} students
-                  </p>
-                </div>
-                <UserCheck className="w-5 h-5 text-gray-400" />
+                {editingGroupId === group.id ? (
+                  <div className="flex-1 space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Group Name</label>
+                      <input
+                        value={groupEditState.name}
+                        onChange={e => setGroupEditState(s => ({ ...s, name: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Discipler</label>
+                      <select
+                        value={groupEditState.discipler_id}
+                        onChange={e => setGroupEditState(s => ({ ...s, discipler_id: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+                      >
+                        <option value="">No discipler</option>
+                        {disciplers.map(d => (
+                          <option key={d.id} value={d.id}>{d.full_name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => saveEditGroup(group.id)}
+                        disabled={groupEditSaving}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded-lg text-xs font-semibold hover:bg-primary-700 disabled:opacity-50 transition-colors"
+                      >
+                        <Check className="w-3 h-3" />
+                        {groupEditSaving ? 'Saving...' : 'Save'}
+                      </button>
+                      <button
+                        onClick={cancelEditGroup}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-200 transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{group.name}</h3>
+                      <p className="text-xs text-gray-500">
+                        Discipler: {group.discipler?.full_name ?? 'Unassigned'} ·{' '}
+                        {group.enrollments?.length ?? 0}/{group.max_students} students
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => startEditGroup(group)}
+                        className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors min-h-0"
+                        title="Edit group"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <UserCheck className="w-5 h-5 text-gray-400" />
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Enrolled students */}

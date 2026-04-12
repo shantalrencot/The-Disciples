@@ -71,30 +71,18 @@ export default function AdminReports() {
         .limit(6)
 
       if (cohorts) {
-        const rates: CohortCompletion[] = []
-        for (const c of cohorts as { id: string; name: string }[]) {
-          const { data: sessions } = await supabase
-            .from('sessions')
-            .select('id')
-            .in('group_id',
-              (await supabase.from('groups').select('id').eq('cohort_id', c.id)).data?.map((g: { id: string }) => g.id) ?? []
-            )
-
+        const rates = await Promise.all((cohorts as { id: string; name: string }[]).map(async (c) => {
+          const { data: groups } = await supabase.from('groups').select('id').eq('cohort_id', c.id)
+          const groupIds = groups?.map((g: { id: string }) => g.id) ?? []
+          if (groupIds.length === 0) return { name: c.name, rate: 0 }
+          const { data: sessions } = await supabase.from('sessions').select('id').in('group_id', groupIds)
           const sessionIds = sessions?.map((s: { id: string }) => s.id) ?? []
-          if (sessionIds.length === 0) {
-            rates.push({ name: c.name, rate: 0 })
-            continue
-          }
-
-          const { data: attData } = await supabase
-            .from('attendance')
-            .select('status')
-            .in('session_id', sessionIds)
-
-          const total = attData?.length ?? 0
-          const pres = attData?.filter((a: { status: string }) => a.status === 'present').length ?? 0
-          rates.push({ name: c.name, rate: total > 0 ? Math.round((pres / total) * 100) : 0 })
-        }
+          if (sessionIds.length === 0) return { name: c.name, rate: 0 }
+          const { data: att } = await supabase.from('attendance').select('status').in('session_id', sessionIds)
+          const total = att?.length ?? 0
+          const pres = att?.filter((a: { status: string }) => a.status === 'present').length ?? 0
+          return { name: c.name, rate: total > 0 ? Math.round((pres / total) * 100) : 0 }
+        }))
         setCohortData(rates)
       }
 
