@@ -64,7 +64,7 @@ export default function AdminTrackDetail() {
 
   return (
     <div>
-      <Link to="/admin/tracks" className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-6 text-sm">
+      <Link to="/tracks" className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-6 text-sm">
         <ArrowLeft className="w-4 h-4" />
         Back to Tracks
       </Link>

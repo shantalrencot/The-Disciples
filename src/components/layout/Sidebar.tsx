@@ -16,7 +16,7 @@ interface NavItem {
 
 const adminNav: NavItem[] = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { to: '/admin/tracks', label: 'Tracks', icon: <BookMarked className="w-5 h-5" /> },
+  { to: '/tracks', label: 'Tracks', icon: <BookMarked className="w-5 h-5" /> },
   { to: '/admin/cohorts', label: 'Cohorts', icon: <Users className="w-5 h-5" /> },
   { to: '/admin/students', label: 'Students', icon: <GraduationCap className="w-5 h-5" /> },
   { to: '/admin/reports', label: 'Reports', icon: <BarChart2 className="w-5 h-5" /> },
@@ -25,6 +25,7 @@ const adminNav: NavItem[] = [
 
 const disciplerNav: NavItem[] = [
   { to: '/discipler/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+  { to: '/tracks', label: 'Tracks', icon: <BookMarked className="w-5 h-5" /> },
   { to: '/discipler/groups', label: 'My Groups', icon: <Users className="w-5 h-5" /> },
   { to: '/discipler/sessions', label: 'Sessions', icon: <ClipboardList className="w-5 h-5" /> },
   { to: '/calendar', label: 'Calendar', icon: <Calendar className="w-5 h-5" /> },

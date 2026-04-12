@@ -66,14 +66,27 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
+          {/* Shared track routes — admin and discipler */}
+          <Route path="/tracks/*" element={
+            <ProtectedRoute allowedRoles={['admin', 'discipler']}>
+              <AppLayout>
+                <Routes>
+                  <Route path="/" element={<AdminTracks />} />
+                  <Route path=":id" element={<AdminTrackDetail />} />
+                  <Route path="*" element={<Navigate to="/tracks" replace />} />
+                </Routes>
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+
           {/* Admin routes */}
           <Route path="/admin/*" element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AppLayout>
                 <Routes>
                   <Route path="dashboard" element={<AdminDashboard />} />
-                  <Route path="tracks" element={<AdminTracks />} />
-                  <Route path="tracks/:id" element={<AdminTrackDetail />} />
+                  <Route path="tracks" element={<Navigate to="/tracks" replace />} />
+                  <Route path="tracks/:id" element={<Navigate to="/tracks" replace />} />
                   <Route path="cohorts" element={<AdminCohorts />} />
                   <Route path="cohorts/:id" element={<AdminCohortDetail />} />
                   <Route path="reports" element={<AdminReports />} />

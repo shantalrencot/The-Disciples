@@ -166,7 +166,7 @@ export default function AdminTracks() {
                   <Trash2 className="w-4 h-4" />
                 </button>
                 <Link
-                  to={`/admin/tracks/${track.id}`}
+                  to={`/tracks/${track.id}`}
                   className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
                 >
                   <ChevronRight className="w-4 h-4" />
