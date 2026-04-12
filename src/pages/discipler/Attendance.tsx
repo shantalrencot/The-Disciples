@@ -55,6 +55,7 @@ export default function DisciplerAttendance() {
 
   const handleSave = async () => {
     if (!session || !user) return
+    if (enrollments.length === 0) return
     setSaving(true)
     try {
       const attRecords: AttendanceRecord[] = enrollments.map(e => ({

@@ -71,7 +71,9 @@ export async function deleteModule(id: string): Promise<void> {
 
 export async function reorderModules(_trackId: string, moduleIds: string[]): Promise<void> {
   const updates = moduleIds.map((id, index) => ({ id, order_index: index }))
-  for (const u of updates) {
-    await supabase.from('modules').update({ order_index: u.order_index }).eq('id', u.id)
-  }
+  await Promise.all(
+    updates.map(u =>
+      supabase.from('modules').update({ order_index: u.order_index }).eq('id', u.id)
+    )
+  )
 }

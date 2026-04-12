@@ -93,7 +93,7 @@ export async function getGroupsByDiscipler(disciplerId: string): Promise<Group[]
     .from('groups')
     .select(`
       *,
-      cohort:cohorts(*, track:tracks(*)),
+      cohort:cohorts(*, track:tracks(*, modules(*))),
       enrollments(*, student:profiles(*))
     `)
     .eq('discipler_id', disciplerId)
@@ -110,6 +110,6 @@ export async function getStudentEnrollment(studentId: string): Promise<Enrollmen
     `)
     .eq('student_id', studentId)
     .eq('status', 'active')
-    .single()
+    .maybeSingle()
   return data as Enrollment | null
 }

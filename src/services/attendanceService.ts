@@ -46,7 +46,9 @@ export async function createSession(session: Omit<Session, 'id' | 'created_at'>)
 }
 
 export async function updateSession(id: string, updates: Partial<Session>): Promise<void> {
-  const { error } = await supabase.from('sessions').update(updates).eq('id', id)
+  // Strip relation fields that are not DB columns to avoid Supabase errors
+  const { group: _g, module: _m, ...dbUpdates } = updates as Session
+  const { error } = await supabase.from('sessions').update(dbUpdates).eq('id', id)
   if (error) throw error
 }
 

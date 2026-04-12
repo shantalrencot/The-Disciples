@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, PlusCircle, Users, UserPlus, Trash2, UserCheck, Pencil, Check, X, Calendar } from 'lucide-react'
 import { getCohort, createGroup, enrollStudent, unenrollStudent, updateGroup } from '../../services/cohortService'
@@ -25,7 +25,7 @@ export default function AdminCohortDetail() {
   const [groupEditState, setGroupEditState] = useState<GroupEditState>({ name: '', discipler_id: '' })
   const [groupEditSaving, setGroupEditSaving] = useState(false)
 
-  async function load() {
+  const load = useCallback(async () => {
     if (!id) return
     const [c, d, s] = await Promise.all([
       getCohort(id),
@@ -36,9 +36,9 @@ export default function AdminCohortDetail() {
     setDisciplers(d)
     setStudents(s)
     setLoading(false)
-  }
+  }, [id])
 
-  useEffect(() => { load() }, [id])
+  useEffect(() => { load() }, [load])
 
   const handleCreateGroup = async () => {
     if (!cohort || !groupName) return

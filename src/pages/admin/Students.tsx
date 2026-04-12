@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { GraduationCap, Search, Mail, Phone, TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { updateUserRole, getAllUsers } from '../../services/authService'
 import type { Profile, UserRole } from '../../lib/types'
 import { getInitials } from '../../lib/utils'
+import { useAuth } from '../../hooks/useAuth'
 
 const ROLE_LABELS: Record<UserRole, string> = {
   admin: 'Admin',
@@ -13,6 +14,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
 const PAGE_SIZE = 20
 
 export default function AdminStudents() {
+  const { user, refreshProfile } = useAuth()
   const [users, setUsers] = useState<Profile[]>([])
   const [filtered, setFiltered] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
@@ -21,14 +23,14 @@ export default function AdminStudents() {
   const [promoting, setPromoting] = useState<string | null>(null)
   const [page, setPage] = useState(1)
 
-  async function load() {
+  const load = useCallback(async () => {
     const allUsers = await getAllUsers()
     setUsers(allUsers)
     setFiltered(allUsers)
     setLoading(false)
-  }
+  }, [])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [load])
 
   useEffect(() => {
     let result = users
@@ -49,6 +51,10 @@ export default function AdminStudents() {
     setPromoting(userId)
     await updateUserRole(userId, role)
     await load()
+    // If admin changed their own role, refresh the auth profile in context
+    if (userId === user?.id) {
+      await refreshProfile()
+    }
     setPromoting(null)
   }
 

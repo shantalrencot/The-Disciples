@@ -9,29 +9,31 @@ import { formatDate, cn, generateSessionDates } from '../../lib/utils'
 
 export default function DisciplerSessions() {
   const { profile } = useAuth()
-  const { groups } = useDisciplerGroups(profile?.id ?? '')
+  const { groups, loading: groupsLoading } = useDisciplerGroups(profile?.id ?? '')
   const [sessions, setSessions] = useState<(Session & { group: Group })[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedGroup, setSelectedGroup] = useState<string>('all')
 
   const loadSessions = async (groupList: Group[]) => {
     if (groupList.length === 0) { setLoading(false); return }
-    const results = await Promise.all(
+    Promise.all(
       groupList.map(async g => {
         const s = await getSessions(g.id)
         return s.map(session => ({ ...session, group: g }))
       })
-    )
-    const all = results.flat().sort(
-      (a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()
-    )
-    setSessions(all as (Session & { group: Group })[])
-    setLoading(false)
+    ).then(results => {
+      const all = results.flat().sort(
+        (a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()
+      )
+      setSessions(all as (Session & { group: Group })[])
+      setLoading(false)
+    }).catch(() => setLoading(false))
   }
 
   useEffect(() => {
+    if (groupsLoading) return
     loadSessions(groups)
-  }, [groups])
+  }, [groups, groupsLoading])
 
   const handleGenerateSessions = async (group: Group) => {
     const cohortGroup = group as unknown as { cohort?: { track?: { name?: string; duration_weeks?: number; modules?: { id: string; order_index: number }[] }; start_date?: string } }
