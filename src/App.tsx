@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthContext, useAuthProvider } from './hooks/useAuth'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { AppLayout } from './components/layout/AppLayout'
+import { missingEnvVars } from './lib/supabase'
 
 // Auth pages
 import Login from './pages/auth/Login'
@@ -35,6 +36,19 @@ function RoleRedirect() {
 }
 
 export default function App() {
+  if (missingEnvVars) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', fontFamily: 'sans-serif' }}>
+        <div style={{ background: 'white', borderRadius: 16, padding: 40, maxWidth: 480, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', textAlign: 'center' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+          <h1 style={{ color: '#111827', marginBottom: 8 }}>Missing Configuration</h1>
+          <p style={{ color: '#6b7280', marginBottom: 24 }}>Supabase environment variables are not set. Please add <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to your deployment environment variables.</p>
+          <p style={{ color: '#9ca3af', fontSize: 14 }}>In Vercel: Project Settings → Environment Variables</p>
+        </div>
+      </div>
+    )
+  }
+
   const auth = useAuthProvider()
 
   const homeRedirect = auth.profile
