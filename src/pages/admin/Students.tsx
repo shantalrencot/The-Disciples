@@ -1,8 +1,14 @@
 import { useState, useEffect } from 'react'
-import { GraduationCap, Search, Mail, Phone } from 'lucide-react'
+import { GraduationCap, Search, Mail, Phone, TrendingUp, TrendingDown } from 'lucide-react'
 import { updateUserRole, getAllUsers } from '../../services/authService'
 import type { Profile, UserRole } from '../../lib/types'
 import { getInitials } from '../../lib/utils'
+
+const ROLE_LABELS: Record<UserRole, string> = {
+  admin: 'Admin',
+  discipler: 'Coach',
+  student: 'Student',
+}
 
 export default function AdminStudents() {
   const [users, setUsers] = useState<Profile[]>([])
@@ -10,6 +16,7 @@ export default function AdminStudents() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all')
+  const [promoting, setPromoting] = useState<string | null>(null)
 
   async function load() {
     const allUsers = await getAllUsers()
@@ -35,8 +42,10 @@ export default function AdminStudents() {
   }, [search, roleFilter, users])
 
   const handleRoleChange = async (userId: string, role: UserRole) => {
+    setPromoting(userId)
     await updateUserRole(userId, role)
-    load()
+    await load()
+    setPromoting(null)
   }
 
   const roleBadge = (role: UserRole) => {
@@ -47,7 +56,7 @@ export default function AdminStudents() {
     }
     return (
       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${styles[role]}`}>
-        {role}
+        {ROLE_LABELS[role]}
       </span>
     )
   }
@@ -79,7 +88,7 @@ export default function AdminStudents() {
         >
           <option value="all">All roles</option>
           <option value="admin">Admin</option>
-          <option value="discipler">Discipler</option>
+          <option value="discipler">Coach</option>
           <option value="student">Student</option>
         </select>
       </div>
@@ -116,15 +125,39 @@ export default function AdminStudents() {
                   )}
                 </div>
               </div>
-              <select
-                value={user.role}
-                onChange={e => handleRoleChange(user.id, e.target.value as UserRole)}
-                className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 min-h-0"
-              >
-                <option value="student">Student</option>
-                <option value="discipler">Discipler</option>
-                <option value="admin">Admin</option>
-              </select>
+
+              {/* Promote / Demote quick actions */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {user.role === 'student' && (
+                  <button
+                    onClick={() => handleRoleChange(user.id, 'discipler')}
+                    disabled={promoting === user.id}
+                    className="flex items-center gap-1.5 text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors min-h-0"
+                  >
+                    <TrendingUp className="w-3 h-3" />
+                    {promoting === user.id ? '...' : 'Make Coach'}
+                  </button>
+                )}
+                {user.role === 'discipler' && (
+                  <button
+                    onClick={() => handleRoleChange(user.id, 'student')}
+                    disabled={promoting === user.id}
+                    className="flex items-center gap-1.5 text-xs bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-300 disabled:opacity-50 transition-colors min-h-0"
+                  >
+                    <TrendingDown className="w-3 h-3" />
+                    {promoting === user.id ? '...' : 'To Student'}
+                  </button>
+                )}
+                <select
+                  value={user.role}
+                  onChange={e => handleRoleChange(user.id, e.target.value as UserRole)}
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 min-h-0"
+                >
+                  <option value="student">Student</option>
+                  <option value="discipler">Coach</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
             </div>
           ))}
         </div>

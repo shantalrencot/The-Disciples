@@ -111,13 +111,13 @@ export default function AdminCohortDetail() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Assign Discipler</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Assign Coach</label>
               <select
                 value={selectedDiscipler}
                 onChange={e => setSelectedDiscipler(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
               >
-                <option value="">No discipler (assign later)</option>
+                <option value="">No coach (assign later)</option>
                 {disciplers.map(d => (
                   <option key={d.id} value={d.id}>{d.full_name}</option>
                 ))}
@@ -156,7 +156,7 @@ export default function AdminCohortDetail() {
                 <div>
                   <h3 className="font-semibold text-gray-900">{group.name}</h3>
                   <p className="text-xs text-gray-500">
-                    Discipler: {group.discipler?.full_name ?? 'Unassigned'} ·{' '}
+                    Coach: {group.discipler?.full_name ?? 'Unassigned'} ·{' '}
                     {group.enrollments?.length ?? 0}/{group.max_students} students
                   </p>
                 </div>
