@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { GraduationCap, Search, Mail, Phone, TrendingUp, TrendingDown } from 'lucide-react'
+import { GraduationCap, Search, Mail, Phone, TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { updateUserRole, getAllUsers } from '../../services/authService'
 import type { Profile, UserRole } from '../../lib/types'
 import { getInitials } from '../../lib/utils'
@@ -10,6 +10,8 @@ const ROLE_LABELS: Record<UserRole, string> = {
   student: 'Student',
 }
 
+const PAGE_SIZE = 20
+
 export default function AdminStudents() {
   const [users, setUsers] = useState<Profile[]>([])
   const [filtered, setFiltered] = useState<Profile[]>([])
@@ -17,6 +19,7 @@ export default function AdminStudents() {
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all')
   const [promoting, setPromoting] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
 
   async function load() {
     const allUsers = await getAllUsers()
@@ -39,6 +42,7 @@ export default function AdminStudents() {
       result = result.filter(u => u.role === roleFilter)
     }
     setFiltered(result)
+    setPage(1) // Reset to first page on filter change
   }, [search, roleFilter, users])
 
   const handleRoleChange = async (userId: string, role: UserRole) => {
@@ -60,6 +64,9 @@ export default function AdminStudents() {
       </span>
     )
   }
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <div>
@@ -103,64 +110,96 @@ export default function AdminStudents() {
           <p className="text-gray-500">No users found</p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {filtered.map(user => (
-            <div key={user.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
-              <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-sm font-bold text-primary-700">{getInitials(user.full_name)}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-medium text-gray-900">{user.full_name}</p>
-                  {roleBadge(user.role)}
+        <>
+          <div className="space-y-2">
+            {paginated.map(user => (
+              <div key={user.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
+                <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm font-bold text-primary-700">{getInitials(user.full_name)}</span>
                 </div>
-                <div className="flex items-center gap-3 mt-1">
-                  <span className="flex items-center gap-1 text-xs text-gray-500">
-                    <Mail className="w-3 h-3" />{user.email}
-                  </span>
-                  {user.phone && (
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-medium text-gray-900">{user.full_name}</p>
+                    {roleBadge(user.role)}
+                  </div>
+                  <div className="flex items-center gap-3 mt-1">
                     <span className="flex items-center gap-1 text-xs text-gray-500">
-                      <Phone className="w-3 h-3" />{user.phone}
+                      <Mail className="w-3 h-3" />{user.email}
                     </span>
+                    {user.phone && (
+                      <span className="flex items-center gap-1 text-xs text-gray-500">
+                        <Phone className="w-3 h-3" />{user.phone}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Promote / Demote quick actions */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {user.role === 'student' && (
+                    <button
+                      onClick={() => handleRoleChange(user.id, 'discipler')}
+                      disabled={promoting === user.id}
+                      className="flex items-center gap-1.5 text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors min-h-0"
+                    >
+                      <TrendingUp className="w-3 h-3" />
+                      {promoting === user.id ? '...' : 'Make Coach'}
+                    </button>
                   )}
+                  {user.role === 'discipler' && (
+                    <button
+                      onClick={() => handleRoleChange(user.id, 'student')}
+                      disabled={promoting === user.id}
+                      className="flex items-center gap-1.5 text-xs bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-300 disabled:opacity-50 transition-colors min-h-0"
+                    >
+                      <TrendingDown className="w-3 h-3" />
+                      {promoting === user.id ? '...' : 'To Student'}
+                    </button>
+                  )}
+                  <select
+                    value={user.role}
+                    onChange={e => handleRoleChange(user.id, e.target.value as UserRole)}
+                    className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 min-h-0"
+                  >
+                    <option value="student">Student</option>
+                    <option value="discipler">Discipler</option>
+                    <option value="admin">Admin</option>
+                  </select>
                 </div>
               </div>
+            ))}
+          </div>
 
-              {/* Promote / Demote quick actions */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {user.role === 'student' && (
-                  <button
-                    onClick={() => handleRoleChange(user.id, 'discipler')}
-                    disabled={promoting === user.id}
-                    className="flex items-center gap-1.5 text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors min-h-0"
-                  >
-                    <TrendingUp className="w-3 h-3" />
-                    {promoting === user.id ? '...' : 'Make Coach'}
-                  </button>
-                )}
-                {user.role === 'discipler' && (
-                  <button
-                    onClick={() => handleRoleChange(user.id, 'student')}
-                    disabled={promoting === user.id}
-                    className="flex items-center gap-1.5 text-xs bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-300 disabled:opacity-50 transition-colors min-h-0"
-                  >
-                    <TrendingDown className="w-3 h-3" />
-                    {promoting === user.id ? '...' : 'To Student'}
-                  </button>
-                )}
-                <select
-                  value={user.role}
-                  onChange={e => handleRoleChange(user.id, e.target.value as UserRole)}
-                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 min-h-0"
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6">
+              <p className="text-sm text-gray-500">
+                Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} users
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="flex items-center gap-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors min-h-0"
                 >
-                  <option value="student">Student</option>
-                  <option value="discipler">Discipler</option>
-                  <option value="admin">Admin</option>
-                </select>
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </button>
+                <span className="text-sm text-gray-600 px-2">
+                  Page {page} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="flex items-center gap-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors min-h-0"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   )

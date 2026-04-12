@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ClipboardList, CheckCircle, Clock, XCircle } from 'lucide-react'
+import { ClipboardList, CheckCircle, Clock, XCircle, Trash2 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useDisciplerGroups } from '../../hooks/useEnrollments'
-import { getSessions, createBulkSessions } from '../../services/attendanceService'
+import { getSessions, createBulkSessions, updateSession, deleteSession } from '../../services/attendanceService'
 import type { Session, Group } from '../../lib/types'
 import { formatDate, cn, generateSessionDates } from '../../lib/utils'
 
@@ -14,36 +14,55 @@ export default function DisciplerSessions() {
   const [loading, setLoading] = useState(true)
   const [selectedGroup, setSelectedGroup] = useState<string>('all')
 
-  useEffect(() => {
-    if (groups.length === 0) { setLoading(false); return }
-    Promise.all(
-      groups.map(async g => {
+  const loadSessions = async (groupList: Group[]) => {
+    if (groupList.length === 0) { setLoading(false); return }
+    const results = await Promise.all(
+      groupList.map(async g => {
         const s = await getSessions(g.id)
         return s.map(session => ({ ...session, group: g }))
       })
-    ).then(results => {
-      const all = results.flat().sort(
-        (a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()
-      )
-      setSessions(all as (Session & { group: Group })[])
-      setLoading(false)
-    })
+    )
+    const all = results.flat().sort(
+      (a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()
+    )
+    setSessions(all as (Session & { group: Group })[])
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    loadSessions(groups)
   }, [groups])
 
   const handleGenerateSessions = async (group: Group) => {
-    const cohortGroup = group as unknown as { cohort?: { track?: { name?: string; duration_weeks?: number }; start_date?: string } }
+    const cohortGroup = group as unknown as { cohort?: { track?: { name?: string; duration_weeks?: number; modules?: { id: string; order_index: number }[] }; start_date?: string } }
     if (!cohortGroup.cohort?.track) return
     const dates = generateSessionDates(
       cohortGroup.cohort.start_date ?? new Date().toISOString(),
       cohortGroup.cohort.track.duration_weeks ?? 8
     )
-    await createBulkSessions(group.id, dates, cohortGroup.cohort.track.name ?? 'Session')
+    // Sort modules by order_index, pass their IDs
+    const modules = [...(cohortGroup.cohort?.track?.modules ?? [])].sort((a, b) => a.order_index - b.order_index)
+    const moduleIds = modules.map(m => m.id)
+    await createBulkSessions(group.id, dates, cohortGroup.cohort?.track?.name ?? 'Session', moduleIds)
     // Reload
     const s = await getSessions(group.id)
     setSessions(prev => [
       ...prev.filter(p => p.group_id !== group.id),
       ...s.map(session => ({ ...session, group })) as (Session & { group: Group })[]
     ])
+  }
+
+  const handleCancel = async (sessionId: string) => {
+    await updateSession(sessionId, { status: 'cancelled' })
+    setSessions(prev =>
+      prev.map(s => s.id === sessionId ? { ...s, status: 'cancelled' as const } : s)
+    )
+  }
+
+  const handleDelete = async (sessionId: string) => {
+    if (!confirm('Delete this session permanently?')) return
+    await deleteSession(sessionId)
+    setSessions(prev => prev.filter(s => s.id !== sessionId))
   }
 
   const filtered = selectedGroup === 'all'
@@ -123,14 +142,42 @@ export default function DisciplerSessions() {
                   {session.group?.name} · {formatDate(session.scheduled_date)}
                 </p>
               </div>
-              {session.status !== 'completed' && (
-                <Link
-                  to={`/discipler/attendance/${session.id}`}
-                  className="flex-shrink-0 text-xs bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 transition-colors"
-                >
-                  Mark Attendance
-                </Link>
-              )}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {session.status === 'scheduled' && (
+                  <>
+                    <button
+                      onClick={() => handleCancel(session.id)}
+                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors min-h-0"
+                      title="Cancel session"
+                    >
+                      <XCircle className="w-4 h-4" />
+                    </button>
+                    <Link
+                      to={`/discipler/attendance/${session.id}`}
+                      className="flex-shrink-0 text-xs bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 transition-colors"
+                    >
+                      Mark Attendance
+                    </Link>
+                  </>
+                )}
+                {session.status === 'cancelled' && (
+                  <button
+                    onClick={() => handleDelete(session.id)}
+                    className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-0"
+                    title="Delete session"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+                {session.status === 'completed' && (
+                  <Link
+                    to={`/discipler/attendance/${session.id}`}
+                    className="flex-shrink-0 text-xs bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 transition-colors"
+                  >
+                    Mark Attendance
+                  </Link>
+                )}
+              </div>
             </div>
           ))}
         </div>

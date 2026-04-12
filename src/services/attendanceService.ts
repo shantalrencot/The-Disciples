@@ -92,16 +92,23 @@ export async function getStudentAttendance(studentId: string): Promise<Attendanc
   return data as Attendance[]
 }
 
+export async function deleteSession(id: string): Promise<void> {
+  const { error } = await supabase.from('sessions').delete().eq('id', id)
+  if (error) throw error
+}
+
 export async function createBulkSessions(
   groupId: string,
   dates: string[],
-  trackName: string
+  trackName: string,
+  moduleIds?: string[]
 ): Promise<void> {
   const sessions = dates.map((date, i) => ({
     group_id: groupId,
     title: `${trackName} - Session ${i + 1}`,
     scheduled_date: date,
     status: 'scheduled' as const,
+    module_id: moduleIds?.[i] ?? null,
   }))
   const { error } = await supabase.from('sessions').insert(sessions)
   if (error) throw error
