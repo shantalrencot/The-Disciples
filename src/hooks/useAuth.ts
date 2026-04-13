@@ -56,13 +56,18 @@ export function useAuthProvider(): AuthContextType {
       }
     })
 
-    // Listen for auth changes
+    // Listen for auth changes (e.g. token refresh, sign out, tab sync)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session)
         setUser(session?.user ?? null)
         if (session?.user) {
-          await fetchProfile(session.user.id)
+          // Skip re-fetch if we already loaded this user's profile eagerly in signIn
+          setProfile(prev => {
+            if (prev?.id === session.user.id) return prev
+            fetchProfile(session.user.id)
+            return prev
+          })
         } else {
           setProfile(null)
         }
@@ -74,8 +79,16 @@ export function useAuthProvider(): AuthContextType {
   }, [fetchProfile])
 
   async function signIn(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) return { error: error.message }
+    // Eagerly set state so the redirect fires immediately without waiting
+    // for the onAuthStateChange round-trip
+    if (data.user && data.session) {
+      setUser(data.user)
+      setSession(data.session)
+      await fetchProfile(data.user.id)
+      setLoading(false)
+    }
     return { error: null }
   }
 
