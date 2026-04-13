@@ -8,7 +8,7 @@ interface AuthContextType {
   profile: Profile | null
   session: Session | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>
+  signIn: (email: string, password: string) => Promise<{ error: string | null; profile: Profile | null }>
   signUp: (email: string, password: string, fullName: string, role?: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
@@ -19,7 +19,7 @@ export const AuthContext = createContext<AuthContextType>({
   profile: null,
   session: null,
   loading: true,
-  signIn: async () => ({ error: null }),
+  signIn: async () => ({ error: null, profile: null }),
   signUp: async () => ({ error: null }),
   signOut: async () => {},
   refreshProfile: async () => {},
@@ -80,16 +80,23 @@ export function useAuthProvider(): AuthContextType {
 
   async function signIn(email: string, password: string) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) return { error: error.message }
+    if (error) return { error: error.message, profile: null }
     // Eagerly set state so the redirect fires immediately without waiting
     // for the onAuthStateChange round-trip
+    let fetchedProfile: Profile | null = null
     if (data.user && data.session) {
       setUser(data.user)
       setSession(data.session)
-      await fetchProfile(data.user.id)
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single()
+      fetchedProfile = profileData as Profile | null
+      if (fetchedProfile) setProfile(fetchedProfile)
       setLoading(false)
     }
-    return { error: null }
+    return { error: null, profile: fetchedProfile }
   }
 
   async function signUp(email: string, password: string, fullName: string, role = 'student') {
