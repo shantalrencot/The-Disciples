@@ -18,16 +18,23 @@ export default function AdminStudents() {
   const [users, setUsers] = useState<Profile[]>([])
   const [filtered, setFiltered] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all')
   const [promoting, setPromoting] = useState<string | null>(null)
   const [page, setPage] = useState(1)
 
   const load = useCallback(async () => {
-    const allUsers = await getAllUsers()
-    setUsers(allUsers)
-    setFiltered(allUsers)
-    setLoading(false)
+    try {
+      setError(null)
+      const allUsers = await getAllUsers()
+      setUsers(allUsers)
+      setFiltered(allUsers)
+    } catch {
+      setError('Failed to load users. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -109,6 +116,11 @@ export default function AdminStudents() {
       {loading ? (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => <div key={i} className="bg-white rounded-2xl h-20 animate-pulse" />)}
+        </div>
+      ) : error ? (
+        <div className="bg-red-50 rounded-2xl p-6 text-center border border-red-100">
+          <p className="text-red-600 text-sm">{error}</p>
+          <button onClick={load} className="mt-3 text-sm text-red-700 underline">Try again</button>
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100">

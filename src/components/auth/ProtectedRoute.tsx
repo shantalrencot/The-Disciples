@@ -25,7 +25,17 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     return <Navigate to="/login" replace />
   }
 
-  if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
+  // User is authenticated but profile hasn't loaded yet — keep showing spinner
+  // so role checks below don't fire prematurely
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (allowedRoles && !allowedRoles.includes(profile.role)) {
     // Redirect to appropriate dashboard based on role
     const roleRedirects: Record<UserRole, string> = {
       admin: '/admin/dashboard',

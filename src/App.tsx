@@ -31,24 +31,22 @@ import StudentSessions from './pages/student/Sessions'
 // Shared
 import Calendar from './pages/Calendar'
 
-function RoleRedirect() {
-  return <Navigate to="/login" replace />
+// Shown when Supabase env vars are missing
+function MissingConfigScreen() {
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', fontFamily: 'sans-serif' }}>
+      <div style={{ background: 'white', borderRadius: 16, padding: 40, maxWidth: 480, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', textAlign: 'center' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+        <h1 style={{ color: '#111827', marginBottom: 8 }}>Missing Configuration</h1>
+        <p style={{ color: '#6b7280', marginBottom: 24 }}>Supabase environment variables are not set. Please add <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to your deployment environment variables.</p>
+        <p style={{ color: '#9ca3af', fontSize: 14 }}>In Vercel: Project Settings → Environment Variables</p>
+      </div>
+    </div>
+  )
 }
 
-export default function App() {
-  if (missingEnvVars) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', fontFamily: 'sans-serif' }}>
-        <div style={{ background: 'white', borderRadius: 16, padding: 40, maxWidth: 480, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
-          <h1 style={{ color: '#111827', marginBottom: 8 }}>Missing Configuration</h1>
-          <p style={{ color: '#6b7280', marginBottom: 24 }}>Supabase environment variables are not set. Please add <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to your deployment environment variables.</p>
-          <p style={{ color: '#9ca3af', fontSize: 14 }}>In Vercel: Project Settings → Environment Variables</p>
-        </div>
-      </div>
-    )
-  }
-
+// Inner shell — always mounts, so hooks are always called in the same order
+function AppShell() {
   const auth = useAuthProvider()
 
   const homeRedirect = auth.profile
@@ -135,9 +133,16 @@ export default function App() {
             </ProtectedRoute>
           } />
 
-          <Route path="*" element={<RoleRedirect />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthContext.Provider>
   )
+}
+
+export default function App() {
+  if (missingEnvVars) {
+    return <MissingConfigScreen />
+  }
+  return <AppShell />
 }
