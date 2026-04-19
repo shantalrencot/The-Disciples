@@ -31,5 +31,8 @@ dist-ssr
 # Supabase CLI temp files
 supabase/.temp/
 
+# Seed file contains credentials — run manually in Supabase SQL Editor
+supabase/seed.sql
+
 # Claude Code settings
 .claude/
