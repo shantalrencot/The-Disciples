@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Users, BookMarked, TrendingUp, PlusCircle, BarChart2, UserCheck } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import type { DashboardStats } from '../../lib/types'
+import { AnnouncementsFeed } from '../../components/AnnouncementsFeed'
 
 interface StatCardProps {
   icon: React.ReactNode
@@ -79,6 +80,8 @@ export default function AdminDashboard() {
           New Track
         </Link>
       </div>
+
+      <AnnouncementsFeed />
 
       {loading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

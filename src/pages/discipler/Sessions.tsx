@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ClipboardList, CheckCircle, Clock, XCircle, Trash2 } from 'lucide-react'
+import { ClipboardList, CheckCircle, Clock, XCircle, Trash2, Archive, ChevronDown, ChevronUp } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useDisciplerGroups } from '../../hooks/useEnrollments'
 import { getSessions, createBulkSessions, updateSession, deleteSession } from '../../services/attendanceService'
@@ -67,9 +67,14 @@ export default function DisciplerSessions() {
     setSessions(prev => prev.filter(s => s.id !== sessionId))
   }
 
-  const filtered = selectedGroup === 'all'
+  const [showArchived, setShowArchived] = useState(false)
+
+  const allFiltered = selectedGroup === 'all'
     ? sessions
     : sessions.filter(s => s.group_id === selectedGroup)
+
+  const filtered = allFiltered.filter(s => s.status !== 'completed')
+  const archived = allFiltered.filter(s => s.status === 'completed')
 
   const statusIcon = (status: string) => {
     if (status === 'completed') return <CheckCircle className="w-4 h-4 text-green-500" />
@@ -128,61 +133,97 @@ export default function DisciplerSessions() {
           <p className="text-gray-500">No sessions found.</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {filtered.map(session => (
-            <div key={session.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
-              <div className={cn(
-                'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
-                session.status === 'completed' ? 'bg-green-50' :
-                session.status === 'cancelled' ? 'bg-red-50' : 'bg-blue-50'
-              )}>
-                {statusIcon(session.status)}
+        <>
+          {/* Active sessions */}
+          <div className="space-y-3">
+            {filtered.length === 0 && archived.length > 0 && (
+              <div className="bg-white rounded-2xl p-8 text-center shadow-sm border border-gray-100">
+                <CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-2" />
+                <p className="text-gray-500 text-sm">All sessions have been completed and archived.</p>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 truncate">{session.title}</p>
-                <p className="text-xs text-gray-500">
-                  {session.group?.name} · {formatDate(session.scheduled_date)}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {session.status === 'scheduled' && (
-                  <>
+            )}
+            {filtered.map(session => (
+              <div key={session.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
+                <div className={cn(
+                  'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
+                  session.status === 'cancelled' ? 'bg-red-50' : 'bg-blue-50'
+                )}>
+                  {statusIcon(session.status)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 truncate">{session.title}</p>
+                  <p className="text-xs text-gray-500">{session.group?.name} · {formatDate(session.scheduled_date)}</p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {session.status === 'scheduled' && (
+                    <>
+                      <button
+                        onClick={() => handleCancel(session.id)}
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors min-h-0"
+                        title="Cancel session"
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </button>
+                      <Link
+                        to={`/discipler/attendance/${session.id}`}
+                        className="flex-shrink-0 text-xs bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 transition-colors"
+                      >
+                        Mark Attendance
+                      </Link>
+                    </>
+                  )}
+                  {session.status === 'cancelled' && (
                     <button
-                      onClick={() => handleCancel(session.id)}
-                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors min-h-0"
-                      title="Cancel session"
+                      onClick={() => handleDelete(session.id)}
+                      className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-0"
+                      title="Delete session"
                     >
-                      <XCircle className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
-                    <Link
-                      to={`/discipler/attendance/${session.id}`}
-                      className="flex-shrink-0 text-xs bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 transition-colors"
-                    >
-                      Mark Attendance
-                    </Link>
-                  </>
-                )}
-                {session.status === 'cancelled' && (
-                  <button
-                    onClick={() => handleDelete(session.id)}
-                    className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-0"
-                    title="Delete session"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
-                {session.status === 'completed' && (
-                  <Link
-                    to={`/discipler/attendance/${session.id}`}
-                    className="flex-shrink-0 text-xs bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 transition-colors"
-                  >
-                    Mark Attendance
-                  </Link>
-                )}
+                  )}
+                </div>
               </div>
+            ))}
+          </div>
+
+          {/* Archived (completed) sessions */}
+          {archived.length > 0 && (
+            <div className="mt-6">
+              <button
+                onClick={() => setShowArchived(v => !v)}
+                className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 mb-3 transition-colors"
+              >
+                <Archive className="w-4 h-4" />
+                {showArchived ? 'Hide' : 'Show'} Archived ({archived.length})
+                {showArchived ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+              {showArchived && (
+                <div className="space-y-2">
+                  {archived.map(session => (
+                    <div key={session.id} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-center gap-4 opacity-75">
+                      <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-600 truncate">{session.title}</p>
+                        <p className="text-xs text-gray-400">{session.group?.name} · {formatDate(session.scheduled_date)}</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-1 rounded-lg">Attendance Recorded</span>
+                        <Link
+                          to={`/discipler/attendance/${session.id}`}
+                          className="text-xs text-gray-500 border border-gray-200 px-3 py-1 rounded-lg hover:bg-white transition-colors"
+                        >
+                          View Record
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   )

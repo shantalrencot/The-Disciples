@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Users, ClipboardList, Calendar, CheckCircle } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useDisciplerGroups } from '../../hooks/useEnrollments'
+import { AnnouncementsFeed } from '../../components/AnnouncementsFeed'
 
 export default function DisciplerDashboard() {
   const { profile } = useAuth()
@@ -15,6 +16,8 @@ export default function DisciplerDashboard() {
         <h1 className="text-2xl font-bold text-gray-900">Welcome, {profile?.full_name?.split(' ')[0]}</h1>
         <p className="text-gray-500 text-sm">Your discipleship groups overview</p>
       </div>
+
+      <AnnouncementsFeed />
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 mb-6">

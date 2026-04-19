@@ -3,6 +3,7 @@ import { TrendingUp, Calendar, Users, BookOpen } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useStudentEnrollment } from '../../hooks/useEnrollments'
 import { useStudentProgress } from '../../hooks/useAttendance'
+import { AnnouncementsFeed } from '../../components/AnnouncementsFeed'
 
 export default function StudentDashboard() {
   const { profile } = useAuth()
@@ -20,6 +21,8 @@ export default function StudentDashboard() {
         </h1>
         <p className="text-gray-500 text-sm">Your discipleship journey</p>
       </div>
+
+      <AnnouncementsFeed />
 
       {enrollLoading ? (
         <div className="bg-white rounded-2xl h-32 animate-pulse mb-6" />

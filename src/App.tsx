@@ -16,6 +16,7 @@ import AdminCohorts from './pages/admin/Cohorts'
 import AdminCohortDetail from './pages/admin/CohortDetail'
 import AdminReports from './pages/admin/Reports'
 import AdminStudents from './pages/admin/Students'
+import AdminAnnouncements from './pages/admin/Announcements'
 
 // Discipler pages
 import DisciplerDashboard from './pages/discipler/Dashboard'
@@ -27,6 +28,7 @@ import DisciplerAttendance from './pages/discipler/Attendance'
 import StudentDashboard from './pages/student/Dashboard'
 import StudentProgress from './pages/student/Progress'
 import StudentSessions from './pages/student/Sessions'
+import StudentTrack from './pages/student/Track'
 
 // Shared
 import Calendar from './pages/Calendar'
@@ -89,6 +91,7 @@ function AppShell() {
                   <Route path="cohorts/:id" element={<AdminCohortDetail />} />
                   <Route path="reports" element={<AdminReports />} />
                   <Route path="students" element={<AdminStudents />} />
+                  <Route path="announcements" element={<AdminAnnouncements />} />
                   <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                 </Routes>
               </AppLayout>
@@ -118,6 +121,7 @@ function AppShell() {
                   <Route path="dashboard" element={<StudentDashboard />} />
                   <Route path="progress" element={<StudentProgress />} />
                   <Route path="sessions" element={<StudentSessions />} />
+                  <Route path="track" element={<StudentTrack />} />
                   <Route path="*" element={<Navigate to="/student/dashboard" replace />} />
                 </Routes>
               </AppLayout>

@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   BookOpen, LayoutDashboard, Users, BookMarked,
   Calendar, BarChart2, LogOut, UserCheck, ClipboardList,
-  GraduationCap, Menu, X,
+  GraduationCap, Menu, X, Megaphone,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
@@ -20,6 +20,7 @@ const adminNav: NavItem[] = [
   { to: '/admin/cohorts', label: 'Cohorts', icon: <Users className="w-5 h-5" /> },
   { to: '/admin/students', label: 'Students', icon: <GraduationCap className="w-5 h-5" /> },
   { to: '/admin/reports', label: 'Reports', icon: <BarChart2 className="w-5 h-5" /> },
+  { to: '/admin/announcements', label: 'Announcements', icon: <Megaphone className="w-5 h-5" /> },
   { to: '/calendar', label: 'Calendar', icon: <Calendar className="w-5 h-5" /> },
 ]
 
@@ -35,6 +36,7 @@ const studentNav: NavItem[] = [
   { to: '/student/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
   { to: '/student/progress', label: 'My Progress', icon: <UserCheck className="w-5 h-5" /> },
   { to: '/student/sessions', label: 'Sessions', icon: <ClipboardList className="w-5 h-5" /> },
+  { to: '/student/track', label: 'My Track', icon: <BookMarked className="w-5 h-5" /> },
   { to: '/calendar', label: 'Calendar', icon: <Calendar className="w-5 h-5" /> },
 ]
 
